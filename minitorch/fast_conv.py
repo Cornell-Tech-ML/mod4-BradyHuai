@@ -1,14 +1,11 @@
 from typing import Tuple, TypeVar, Any
 
-import numpy as np
 from numba import prange
 from numba import njit as _njit
 
 from .autodiff import Context
 from .tensor import Tensor
 from .tensor_data import (
-    MAX_DIMS,
-    Index,
     Shape,
     Strides,
     Storage,
@@ -25,12 +22,14 @@ def njit(fn: Fn, **kwargs: Any) -> Fn:
     """Just-in-time compile a function using Numba.
 
     Args:
+    ----
         fn (Fn): The function to be compiled.
         **kwargs: Additional keyword arguments for Numba's njit.
 
     Returns:
+    -------
         Fn: The compiled function.
-        
+
     """
     return _njit(inline="always", **kwargs)(fn)  # type: ignore
 
@@ -110,23 +109,30 @@ def _tensor_conv1d(
                 for ic in range(in_channels):
                     for k in range(kw):
                         # Calculate input index based on reverse flag
-                        if reverse: # Backward
+                        if reverse:  # Backward
                             in_w = w - kw + 1 + k
-                        else: # Forward
+                        else:  # Forward
                             in_w = k + w
-                        
+
                         # Check bounds for the input
                         if 0 <= in_w < width:
                             # Compute input and weight indices
-                            input_idx = b * s1[0] + ic * s1[1] + in_w * s1[2] # Batch, in_channel, width
-                            weight_idx = oc * s2[0] + ic * s2[1] + k * s2[2] # out_channel, in_channel, k_width
-                            
+                            input_idx = (
+                                b * s1[0] + ic * s1[1] + in_w * s1[2]
+                            )  # Batch, in_channel, width
+                            weight_idx = (
+                                oc * s2[0] + ic * s2[1] + k * s2[2]
+                            )  # out_channel, in_channel, k_width
+
                             # Accumulate value
                             value += input[input_idx] * weight[weight_idx]
-                
+
                 # Compute output index and assign value
-                out_idx = b * out_strides[0] + oc * out_strides[1] + w * out_strides[2] # batch, out_channels, width
+                out_idx = (
+                    b * out_strides[0] + oc * out_strides[1] + w * out_strides[2]
+                )  # batch, out_channels, width
                 out[out_idx] = value
+
 
 tensor_conv1d = njit(_tensor_conv1d, parallel=True)
 
@@ -174,7 +180,7 @@ class Conv1dFun(Function):
         -------
             Tuple[Tensor, Tensor]
                 Gradients with respect to input and weight.
-                
+
         """
         input, weight = ctx.saved_values
         batch, in_channels, w = input.shape
@@ -280,21 +286,24 @@ def _tensor_conv2d(
                         for kh_idx in range(kh):
                             for kw_idx in range(kw):
                                 # Compute input indices based on reverse flag
-                                if reverse: # Backward
+                                if reverse:  # Backward
                                     in_h = h - kh + 1 + kh_idx
                                     in_w = w - kw + 1 + kw_idx
-                                else: # Forward
+                                else:  # Forward
                                     in_h = h + kh_idx
                                     in_w = w + kw_idx
 
                                 # Ensure input indices are within bounds
                                 if 0 <= in_h < height and 0 <= in_w < width:
                                     # Compute indices for input and weight
-                                    input_idx = ( # batch, in_channels, height, width
+                                    input_idx = (  # batch, in_channels, height, width
                                         b * s10 + ic * s11 + in_h * s12 + in_w * s13
                                     )
-                                    weight_idx = ( # out_channels, in_channels, k_height, k_width
-                                        oc * s20 + ic * s21 + kh_idx * s22 + kw_idx * s23
+                                    weight_idx = (  # out_channels, in_channels, k_height, k_width
+                                        oc * s20
+                                        + ic * s21
+                                        + kh_idx * s22
+                                        + kw_idx * s23
                                     )
                                     # Accumulate the convolution result
                                     value += input[input_idx] * weight[weight_idx]
@@ -305,7 +314,7 @@ def _tensor_conv2d(
                         + oc * out_strides[1]
                         + h * out_strides[2]
                         + w * out_strides[3]
-                    ) # batch, out_channels, height, width
+                    )  # batch, out_channels, height, width
                     out[out_idx] = value
 
 
@@ -353,7 +362,7 @@ class Conv2dFun(Function):
         -------
             Tuple[Tensor, Tensor]
                 Gradients with respect to input and weight.
-                
+
         """
         input, weight = ctx.saved_values
         batch, in_channels, h, w = input.shape

@@ -4,7 +4,7 @@ from . import operators
 from .autodiff import Context
 from .fast_ops import FastOps
 from .tensor import Tensor
-from .tensor_functions import Function, rand, tensor
+from .tensor_functions import Function, rand
 
 
 # List of functions in this file:
@@ -68,15 +68,17 @@ def avgpool2d(input: Tensor, kernel: Tuple[int, int]) -> Tensor:
     batch, channel, _, _ = input.shape
     # Use the tile function to reshape the input
     tiled, new_height, new_width = tile(input, kernel)
-    
+
     # Compute the average across the kernel dimensions (last axis)
     avg_pooled = tiled.mean(dim=4)
-    
+
     # Return the pooled tensor
     return avg_pooled.view(batch, channel, new_height, new_width)
 
 
-max_reduce = FastOps.reduce(operators.max, -float('inf'))
+max_reduce = FastOps.reduce(operators.max, -float("inf"))
+
+
 def argmax(input: Tensor, dim: int) -> Tensor:
     """Compute the argmax of the input tensor along a specified dimension as a 1-hot tensor.
 
@@ -197,10 +199,10 @@ def maxpool2d(input: Tensor, kernel: Tuple[int, int]) -> Tensor:
     batch, channel, _, _ = input.shape
     # Use the tile function to reshape the input
     tiled, new_height, new_width = tile(input, kernel)
-    
+
     # Compute the max across the kernel dimensions (last axis)
     max_pooled = max(tiled, dim=4)
-    
+
     # Return the pooled tensor
     return max_pooled.view(batch, channel, new_height, new_width)
 
@@ -222,8 +224,7 @@ def dropout(input: Tensor, prob: float, ignore: bool = False) -> Tensor:
     """
     if ignore or prob <= 0.0:
         return input
-        
+
     mask = rand(input.shape) > prob
 
     return input * mask
-
