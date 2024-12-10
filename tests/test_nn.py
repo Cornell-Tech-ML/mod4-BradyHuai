@@ -44,6 +44,11 @@ def test_max(t: Tensor) -> None:
     out = minitorch.max(t, 2)
     assert_close(out[0, 0, 0], max([t[0, 0, i] for i in range(t.shape[2])]))
 
+    # Add random factor to max tensor
+    random_tensor = minitorch.rand(t.shape)
+    t = t + random_tensor
+    minitorch.grad_check(lambda t: minitorch.max(t, 2), t)
+
 
 @pytest.mark.task4_4
 @given(tensors(shape=(1, 1, 4, 4)))
